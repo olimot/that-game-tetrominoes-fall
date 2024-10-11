@@ -1,32 +1,3 @@
-const styleCSS = `
-  html, body {
-    display: grid;
-    min-height: 100%;
-    margin: 0;
-  }
-
-  body {
-    background: #000;
-    color: #666;
-    align-items: center;
-    justify-content: center;
-  }
-
-  pre {
-    line-height: 16px;
-    font-family: monospace;
-    font-size: 16px;
-    margin: 0;
-  }
-  pre span {
-    width: 8px;
-    height: 16px;
-    display: inline-block;
-    transform-origin: center bottom;
-    overflow: hidden;
-  }
-`;
-
 type CharacterCell = [string, unknown];
 
 const CharacterCell = (character = " ", style: unknown = {}): CharacterCell => {
@@ -608,9 +579,6 @@ function renderGame(game: Game) {
 }
 
 async function main() {
-  document.head.appendChild(
-    Object.assign(document.createElement("style"), { innerHTML: styleCSS }),
-  );
   document.body.appendChild(terminal);
 
   let game = createGame();
@@ -645,4 +613,6 @@ async function main() {
   });
 }
 
-export default main;
+window.addEventListener("load", main);
+
+export {};
