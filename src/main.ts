@@ -1,12 +1,15 @@
-type CharacterCell = [string, unknown];
+type Char = [
+  string,
+  { color?: string | null; transform?: string | null } | undefined,
+];
 
-const CharacterCell = (character = " ", style: unknown = {}): CharacterCell => {
-  return [character, style];
-};
+const Char = (char: Char[0] = " ", style?: Char[1]): Char => [char, style];
 
-const vec2 = (x = 0, y = 0): [number, number] => [x, y];
+type RC = [number, number];
 
-vec2.add = (a: readonly number[], b: readonly number[]): [number, number] => {
+const RC = (x = 0, y = 0): [number, number] => [x, y];
+
+RC.add = (a: readonly number[], b: readonly number[]): [number, number] => {
   return [(a[0] | 0) + (b[0] | 0), (a[1] | 0) + (b[1] | 0)];
 };
 
@@ -77,70 +80,33 @@ const fallTimeoutByLevel = [
 const wallKickData = {
   JLSTZ: {
     clockwise: [
-      [vec2(+0, -1), vec2(-1, -1), vec2(+2, +0), vec2(+2, -1)],
-      [vec2(+0, +1), vec2(+1, +1), vec2(-2, +0), vec2(-2, +1)],
-      [vec2(+0, +1), vec2(-1, +1), vec2(+2, +0), vec2(+2, +1)],
-      [vec2(+0, -1), vec2(+1, -1), vec2(-2, +0), vec2(-2, -1)],
+      [RC(+0, -1), RC(-1, -1), RC(+2, +0), RC(+2, -1)],
+      [RC(+0, +1), RC(+1, +1), RC(-2, +0), RC(-2, +1)],
+      [RC(+0, +1), RC(-1, +1), RC(+2, +0), RC(+2, +1)],
+      [RC(+0, -1), RC(+1, -1), RC(-2, +0), RC(-2, -1)],
     ],
     counterClockwise: [
-      [vec2(+0, +1), vec2(-1, +1), vec2(+2, +0), vec2(+2, +1)],
-      [vec2(+0, +1), vec2(+1, +1), vec2(-2, +0), vec2(-2, +1)],
-      [vec2(+0, -1), vec2(-1, -1), vec2(+2, +0), vec2(+2, -1)],
-      [vec2(+0, -1), vec2(+1, -1), vec2(-2, +0), vec2(-2, -1)],
+      [RC(+0, +1), RC(-1, +1), RC(+2, +0), RC(+2, +1)],
+      [RC(+0, +1), RC(+1, +1), RC(-2, +0), RC(-2, +1)],
+      [RC(+0, -1), RC(-1, -1), RC(+2, +0), RC(+2, -1)],
+      [RC(+0, -1), RC(+1, -1), RC(-2, +0), RC(-2, -1)],
     ],
   },
   I: {
     clockwise: [
-      [vec2(+0, -2), vec2(+0, +1), vec2(+1, -2), vec2(-2, +1)],
-      [vec2(+0, -1), vec2(+0, +2), vec2(-2, -1), vec2(+1, +2)],
-      [vec2(+0, +2), vec2(+0, -1), vec2(-1, +2), vec2(+2, -1)],
-      [vec2(+0, +1), vec2(+0, -2), vec2(+2, +1), vec2(-1, -2)],
+      [RC(+0, -2), RC(+0, +1), RC(+1, -2), RC(-2, +1)],
+      [RC(+0, -1), RC(+0, +2), RC(-2, -1), RC(+1, +2)],
+      [RC(+0, +2), RC(+0, -1), RC(-1, +2), RC(+2, -1)],
+      [RC(+0, +1), RC(+0, -2), RC(+2, +1), RC(-1, -2)],
     ],
     counterClockwise: [
-      [vec2(+0, -1), vec2(+0, +2), vec2(-2, -1), vec2(+1, +2)],
-      [vec2(+0, +2), vec2(+0, -1), vec2(-1, +2), vec2(+2, -1)],
-      [vec2(+0, +1), vec2(+0, -2), vec2(+2, +1), vec2(-1, -2)],
-      [vec2(+0, -2), vec2(+0, +1), vec2(+1, -2), vec2(-2, +1)],
+      [RC(+0, -1), RC(+0, +2), RC(-2, -1), RC(+1, +2)],
+      [RC(+0, +2), RC(+0, -1), RC(-1, +2), RC(+2, -1)],
+      [RC(+0, +1), RC(+0, -2), RC(+2, +1), RC(-1, -2)],
+      [RC(+0, -2), RC(+0, +1), RC(+1, -2), RC(-2, +1)],
     ],
   },
 };
-
-function renderText(
-  screen: CharacterCell[][],
-  top: number,
-  left: number,
-  text?: string | null,
-  style?: unknown,
-) {
-  if (!text) return;
-  screen[top].splice(
-    left,
-    text.length,
-    ...[...text].map((character) => CharacterCell(character, style)),
-  );
-}
-
-function renderTetromino(
-  screen: CharacterCell[][],
-  top: number,
-  left: number,
-  tetrominoName?: TetrominoName | null,
-) {
-  const shape = tetrominoName ? tetrominoShapes[tetrominoName] : [];
-  const color = tetrominoName ? `rgb(${tetrominoColors[tetrominoName]})` : null;
-  for (let r = 0; r < 2; r++) {
-    for (let c = 0; c < 4; c++) {
-      const block = shape[r]?.[shape.length === 2 ? c - 1 : c];
-      const cell = block
-        ? CharacterCell("█", color && { color })
-        : CharacterCell("░", { color: null });
-      const oc = shape.length === 3 ? 1 : 0;
-      screen[r + top][2 * c + left + oc] = screen[r + top][
-        2 * c + 1 + left + oc
-      ] = cell;
-    }
-  }
-}
 
 function rotateTetrominoShape<T>(tetromino: T[][], isClockwise: boolean) {
   const last = tetromino.length - 1;
@@ -151,7 +117,7 @@ function rotateTetrominoShape<T>(tetromino: T[][], isClockwise: boolean) {
   );
 }
 
-function* eachFallingBlockPosition(
+function* eachTetrominoCell(
   position: readonly [number, number],
   shape: number[][],
 ) {
@@ -245,7 +211,7 @@ function detectCollision(
   position = game.current.position,
   shape = game.current.shape,
 ) {
-  for (const [r, c] of eachFallingBlockPosition(position, shape)) {
+  for (const [r, c] of eachTetrominoCell(position, shape)) {
     if (!isInPlayfield(game, r, c) || game.playfield[r][c]) return true;
   }
   return false;
@@ -294,7 +260,7 @@ function popPiece(game: Game, useHold: boolean) {
 }
 
 function detectGround(game: Game) {
-  if (detectCollision(game, vec2.add(game.current.position, [1, 0]))) {
+  if (detectCollision(game, RC.add(game.current.position, [1, 0]))) {
     game.current.groundRow = game.current.position[0];
     game.lockAfter = game.time + 500;
   } else {
@@ -308,10 +274,7 @@ function softDrop(game: Game) {
   game.stats.score++;
   game.current.position[0]++;
   game.lastFallenAt = game.time;
-  game.lockAfter = detectCollision(
-    game,
-    vec2.add(game.current.position, [1, 0]),
-  )
+  game.lockAfter = detectCollision(game, RC.add(game.current.position, [1, 0]))
     ? game.time + 500
     : +Infinity;
 }
@@ -328,7 +291,7 @@ function rotateCurrentPiece(game: Game, isClockwise: boolean) {
   const { current } = game;
   const pos = current.position;
   const nextShape = rotateTetrominoShape(current.shape, isClockwise);
-  let delta = vec2();
+  let delta = RC();
   let hasCollision = detectCollision(game, pos, nextShape);
   if (hasCollision) {
     const dirname = isClockwise ? "clockwise" : "counterClockwise";
@@ -340,7 +303,7 @@ function rotateCurrentPiece(game: Game, isClockwise: boolean) {
     );
     for (let i = 0; i < kickTable[current.point].length; i++) {
       const testingDelta = kickTable[current.point][i];
-      if (!detectCollision(game, vec2.add(pos, testingDelta), nextShape)) {
+      if (!detectCollision(game, RC.add(pos, testingDelta), nextShape)) {
         console.log(`Wall Kick test #${i + 1} succeed for ${current.name}.`);
         delta = testingDelta;
         hasCollision = false;
@@ -384,11 +347,6 @@ function handleKeyCommand(game: Game, key: string) {
     return false;
   }
   return true;
-}
-
-function setKeyRepeating(game: Game, key: string) {
-  const delay = key === " " || key === "c" ? +Infinity : 150;
-  game.lastRepeatedAt[key] = game.time + delay - repeatingTimeout;
 }
 
 function updateGame(game: Game) {
@@ -447,10 +405,7 @@ function updateGame(game: Game) {
   } else if (time > lockAfter) {
     let minAffected = playfield.length - 1;
     let maxAffected = 0;
-    for (const [r, c] of eachFallingBlockPosition(
-      current.position,
-      current.shape,
-    )) {
+    for (const [r, c] of eachTetrominoCell(current.position, current.shape)) {
       if (!isInPlayfield(game, r, c)) continue;
       playfield[r][c] = 1;
       playfieldColor[r][c] = tetrominoColors[current.name];
@@ -479,29 +434,50 @@ function updateGame(game: Game) {
         current.groundRow,
       );
       game.lastFallenAt += fallDistance * fallTimeout;
-      if (detectCollision(game, vec2.add(current.position, [1, 0])))
+      if (detectCollision(game, RC.add(current.position, [1, 0])))
         game.lockAfter = game.time + 500;
     }
   }
 }
 
-function renderGame(game: Game) {
-  const screen = [...Array(24)].map(() =>
-    [...Array(80)].map(() => CharacterCell()),
-  );
+function uploadText(
+  screen: Char[][],
+  top: number,
+  left: number,
+  text?: string | null,
+  style?: Char[1],
+) {
+  if (!text) return;
+  const chars = Array.from(text, (it) => Char(it, style));
+  screen[top].splice(left, text.length, ...chars);
+}
 
-  renderText(screen, 2, 18, "HOLD");
-  for (let i = 0; i < 4; i++)
-    renderText(screen, 3 + i, 18, "░".repeat(10), { color: null });
-  renderTetromino(screen, 4, 19, game.hold);
+function uploadTetromino(
+  screen: Char[][],
+  top: number,
+  left: number,
+  tetrominoName?: TetrominoName | null,
+) {
+  const shape = tetrominoName ? tetrominoShapes[tetrominoName] : [];
+  const color = tetrominoName ? `rgb(${tetrominoColors[tetrominoName]})` : null;
+  for (let r = 0; r < 2; r++) {
+    for (let c = 0; c < 4; c++) {
+      const block = shape[r]?.[shape.length === 2 ? c - 1 : c];
+      const cell = block ? Char("█", { color }) : Char("░");
+      const oc = shape.length === 3 ? 1 : 0;
+      const row = r + top;
+      const col = 2 * c + left + oc;
+      screen[row][col] = screen[row][col + 1] = cell;
+    }
+  }
+}
 
-  renderText(screen, 16, 18, "SCORE");
-  renderText(screen, 17, 18, `${game.stats.score.toLocaleString()}`);
-  renderText(screen, 18, 18, "LEVEL");
-  renderText(screen, 19, 18, `${game.stats.level}`);
-  renderText(screen, 20, 18, "LINES");
-  renderText(screen, 21, 18, `${game.stats.lines.toLocaleString()}`);
-
+function uploadPlayfield(
+  screen: Char[][],
+  top: number,
+  left: number,
+  game: Game,
+) {
   for (let r = 2; r < game.playfield.length; r++) {
     for (let c = 0; c < game.playfield[r].length; c++) {
       const block = game.playfield[r][c];
@@ -509,70 +485,80 @@ function renderGame(game: Game) {
         ? `scaleY(${(game.clearing.doAfter - game.time) / 300})`
         : null;
       const color = `rgb(${game.playfieldColor[r][c]})`;
-      if (block) {
-        screen[r][2 * c + 29] = screen[r][2 * c + 1 + 29] = CharacterCell("█", {
-          color,
-          transform,
-        });
-      } else {
-        screen[r][2 * c + 29] = screen[r][2 * c + 1 + 29] = CharacterCell("░", {
-          color: null,
-          transform: null,
-        });
-      }
+      const row = r - 2 + top;
+      const col = c * 2 + left;
+      const char = block ? Char("█", { color, transform }) : Char("░");
+      screen[row][col] = screen[row][col + 1] = char;
     }
   }
 
-  const ghostPosition: [number, number] = [
-    game.current.groundRow,
-    game.current.position[1],
-  ];
-  for (const [r, c] of eachFallingBlockPosition(
-    ghostPosition,
-    game.current.shape,
-  )) {
+  const { current } = game;
+
+  const ghostColor = `rgb(${tetrominoColors[current.name]})`;
+  const ghostPosition = RC(current.groundRow, current.position[1]);
+  for (const [r, c] of eachTetrominoCell(ghostPosition, current.shape)) {
     if (!isInPlayfield(game, r, c) || r < 2) continue;
-    const color = `rgb(${tetrominoColors[game.current.name]})`;
-    const style = Object.assign(screen[r][2 * c + 1 + 29][1] as object, {
-      color,
-    });
-    screen[r][2 * c + 29] = screen[r][2 * c + 1 + 29] = CharacterCell(
-      "▒",
-      style,
-    );
+    const row = r - 2 + top;
+    const col = c * 2 + left;
+    const transform = game.clearing?.lines.includes(r)
+      ? `scaleY(${(game.clearing.doAfter - game.time) / 300})`
+      : null;
+    const style = { color: ghostColor, transform };
+    screen[row][col] = screen[row][col + 1] = Char("▒", style);
   }
 
-  let color = `rgb(${tetrominoColors[game.current.name]})`;
+  let lockingColor = `rgb(${tetrominoColors[current.name]})`;
   if (!game.clearing && game.lockAfter !== +Infinity) {
     const opacity = 0.33 + 0.67 * ((game.lockAfter - game.time) / 500);
-    color = `rgb(${tetrominoColors[game.current.name]} / ${Math.round(opacity * 100)}%)`;
-  }
-  for (const [r, c] of eachFallingBlockPosition(
-    game.current.position,
-    game.current.shape,
-  )) {
-    if (!isInPlayfield(game, r, c) || r < 2) continue;
-    const style = Object.assign(screen[r][2 * c + 1 + 29][1] as object, {
-      color,
-    });
-    screen[r][2 * c + 29] = screen[r][2 * c + 1 + 29] = CharacterCell(
-      "█",
-      style,
-    );
+    lockingColor = `rgb(${tetrominoColors[current.name]} / ${Math.round(opacity * 100)}%)`;
   }
 
-  renderText(screen, 2, 50, "NEXT");
-  for (let i = 0; i < 10; i++)
-    renderText(screen, 3 + i, 50, "░".repeat(10), { color: null });
-  renderTetromino(screen, 4, 51, game.queue[0]);
-  renderTetromino(screen, 7, 51, game.queue[1]);
-  renderTetromino(screen, 10, 51, game.queue[2]);
+  for (const [r, c] of eachTetrominoCell(current.position, current.shape)) {
+    if (!isInPlayfield(game, r, c) || r < 2) continue;
+    const row = r - 2 + top;
+    const col = c * 2 + left;
+    const transform = game.clearing?.lines.includes(r)
+      ? `scaleY(${(game.clearing.doAfter - game.time) / 300})`
+      : null;
+    const style = { color: lockingColor, transform };
+    screen[row][col] = screen[r][col + 1] = Char("█", style);
+  }
+}
+
+function renderGame(game: Game) {
+  const screen = [...Array(24)].map(() => [...Array(80)].map(() => Char()));
+
+  uploadText(screen, 2, 18, "HOLD");
+  for (let i = 0; i < 4; i++) uploadText(screen, 3 + i, 18, "░".repeat(10));
+  uploadTetromino(screen, 4, 19, game.hold);
+
+  uploadText(screen, 16, 18, "SCORE");
+  uploadText(screen, 17, 18, `${game.stats.score.toLocaleString()}`);
+  uploadText(screen, 18, 18, "LEVEL");
+  uploadText(screen, 19, 18, `${game.stats.level}`);
+  uploadText(screen, 20, 18, "LINES");
+  uploadText(screen, 21, 18, `${game.stats.lines.toLocaleString()}`);
+
+  uploadPlayfield(screen, 2, 29, game);
+
+  uploadText(screen, 2, 50, "NEXT");
+  for (let i = 0; i < 10; i++) uploadText(screen, 3 + i, 50, "░".repeat(10));
+  uploadTetromino(screen, 4, 51, game.queue[0]);
+  uploadTetromino(screen, 7, 51, game.queue[1]);
+  uploadTetromino(screen, 10, 51, game.queue[2]);
 
   for (let r = 0; r < screen.length; r++) {
     for (let c = 0; c < screen[r].length; c++) {
       const [character, style] = screen[r][c];
       const cellElement = terminal.children[r].children[c] as HTMLSpanElement;
-      Object.assign(cellElement.style, style);
+      if (style) {
+        if (style.transform) cellElement.style.transform = style.transform;
+        else cellElement.style.removeProperty("transform");
+        if (style.color) cellElement.style.color = style.color;
+        else cellElement.style.removeProperty("color");
+      } else {
+        cellElement.removeAttribute("style");
+      }
       cellElement.textContent = character;
     }
   }
@@ -582,10 +568,9 @@ async function main() {
   document.body.appendChild(terminal);
 
   let game = createGame();
-  let begin = performance.now();
-  requestAnimationFrame(async function callback() {
+  requestAnimationFrame(async function callback(time) {
     if (signal.aborted) return;
-    game.time = performance.now() - begin;
+    game.time = time;
     updateGame(game);
     renderGame(game);
     if (!signal.aborted) requestAnimationFrame(callback);
@@ -595,16 +580,17 @@ async function main() {
   window.addEventListener("keydown", (e) => {
     if (!game.isActive) {
       game = createGame();
-      begin = performance.now();
       updateGame(game);
     } else {
       const { key } = e;
       if (key in game.lastRepeatedAt) return;
-      const shouldUpdate = handleKeyCommand(game, key);
-      if (!shouldUpdate) return;
+      const firstRepeatingTimeout =
+        key === " " || key === "c" ? +Infinity : 150;
+      game.lastRepeatedAt[key] =
+        game.time + firstRepeatingTimeout - repeatingTimeout;
       keyPressed.push(key);
-      updateGame(game);
-      setKeyRepeating(game, key);
+
+      if (handleKeyCommand(game, key)) updateGame(game);
     }
   });
 
