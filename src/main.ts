@@ -1,3 +1,5 @@
+import { fillText, inflateBitmap } from "./bitmap-font";
+
 type Char = [
   string,
   { color?: string | null; transform?: string | null } | undefined,
@@ -178,21 +180,6 @@ function createGame() {
 }
 
 type Game = ReturnType<typeof createGame>;
-
-const terminal = document.createElement("pre");
-terminal.append(
-  ...[...Array(24)].map(() => {
-    const line = document.createElement("div");
-    line.append(
-      ...[...Array(80)].map(() => {
-        const characterCell = document.createElement("span");
-        characterCell.style.color = "inherit";
-        return characterCell;
-      }),
-    );
-    return line;
-  }),
-);
 
 const controller = new AbortController();
 const signal = controller.signal;
@@ -440,7 +427,7 @@ function updateGame(game: Game) {
   }
 }
 
-function uploadText(
+function setTextScreen(
   screen: Char[][],
   top: number,
   left: number,
@@ -452,7 +439,7 @@ function uploadText(
   screen[top].splice(left, text.length, ...chars);
 }
 
-function uploadTetromino(
+function setTetrominoScreen(
   screen: Char[][],
   top: number,
   left: number,
@@ -463,31 +450,39 @@ function uploadTetromino(
   for (let r = 0; r < 2; r++) {
     for (let c = 0; c < 4; c++) {
       const block = shape[r]?.[shape.length === 2 ? c - 1 : c];
-      const cell = block ? Char("█", { color }) : Char("░");
+      if (!block) continue;
       const oc = shape.length === 3 ? 1 : 0;
       const row = r + top;
       const col = 2 * c + left + oc;
-      screen[row][col] = screen[row][col + 1] = cell;
+      screen[row][col] = screen[row][col + 1] = Char("█", { color });
     }
   }
 }
 
-function uploadPlayfield(
+function easeOutQuad(x: number): number {
+  return 1 - (1 - x) * (1 - x);
+}
+
+function setPlayfieldScreen(
   screen: Char[][],
   top: number,
   left: number,
   game: Game,
 ) {
+  const tClear = game.clearing
+    ? 1 - (game.clearing.doAfter - game.time) / 300
+    : 0;
+  const pfw = game.playfield[0].length;
+  const invisibleBefore = easeOutQuad(tClear) * pfw;
+
   for (let r = 2; r < game.playfield.length; r++) {
     for (let c = 0; c < game.playfield[r].length; c++) {
       const block = game.playfield[r][c];
-      const transform = game.clearing?.lines.includes(r)
-        ? `scaleY(${(game.clearing.doAfter - game.time) / 300})`
-        : null;
       const color = `rgb(${game.playfieldColor[r][c]})`;
       const row = r - 2 + top;
       const col = c * 2 + left;
-      const char = block ? Char("█", { color, transform }) : Char("░");
+      const clearing = game.clearing?.lines.includes(r) && c < invisibleBefore;
+      const char = block && !clearing ? Char("█", { color }) : Char("░");
       screen[row][col] = screen[row][col + 1] = char;
     }
   }
@@ -500,11 +495,7 @@ function uploadPlayfield(
     if (!isInPlayfield(game, r, c) || r < 2) continue;
     const row = r - 2 + top;
     const col = c * 2 + left;
-    const transform = game.clearing?.lines.includes(r)
-      ? `scaleY(${(game.clearing.doAfter - game.time) / 300})`
-      : null;
-    const style = { color: ghostColor, transform };
-    screen[row][col] = screen[row][col + 1] = Char("▒", style);
+    screen[row][col] = screen[row][col + 1] = Char("░", { color: ghostColor });
   }
 
   let lockingColor = `rgb(${tetrominoColors[current.name]})`;
@@ -517,63 +508,85 @@ function uploadPlayfield(
     if (!isInPlayfield(game, r, c) || r < 2) continue;
     const row = r - 2 + top;
     const col = c * 2 + left;
-    const transform = game.clearing?.lines.includes(r)
-      ? `scaleY(${(game.clearing.doAfter - game.time) / 300})`
-      : null;
-    const style = { color: lockingColor, transform };
-    screen[row][col] = screen[r][col + 1] = Char("█", style);
+    const clearing = game.clearing?.lines.includes(r) && c < invisibleBefore;
+    const char = !clearing ? Char("█", { color: lockingColor }) : Char("░");
+    screen[row][col] = screen[row][col + 1] = char;
   }
 }
 
-function renderGame(game: Game) {
-  const screen = [...Array(24)].map(() => [...Array(80)].map(() => Char()));
+function setGameScreen(game: Game) {
+  const screen = [...Array(20)].map(() => [...Array(40)].map(() => Char()));
 
-  uploadText(screen, 2, 18, "HOLD");
-  for (let i = 0; i < 4; i++) uploadText(screen, 3 + i, 18, "░".repeat(10));
-  uploadTetromino(screen, 4, 19, game.hold);
+  setTextScreen(screen, 0, 0, "HOLD");
+  for (let i = 0; i < 4; i++) setTextScreen(screen, 1 + i, 0, "░".repeat(8));
+  setTetrominoScreen(screen, 2, 0, game.hold);
 
-  uploadText(screen, 16, 18, "SCORE");
-  uploadText(screen, 17, 18, `${game.stats.score.toLocaleString()}`);
-  uploadText(screen, 18, 18, "LEVEL");
-  uploadText(screen, 19, 18, `${game.stats.level}`);
-  uploadText(screen, 20, 18, "LINES");
-  uploadText(screen, 21, 18, `${game.stats.lines.toLocaleString()}`);
+  setTextScreen(screen, 14, 0, "SCORE");
+  setTextScreen(screen, 15, 0, `${game.stats.score.toLocaleString()}`);
+  setTextScreen(screen, 16, 0, "LEVEL");
+  setTextScreen(screen, 17, 0, `${game.stats.level}`);
+  setTextScreen(screen, 18, 0, "LINES");
+  setTextScreen(screen, 19, 0, `${game.stats.lines.toLocaleString()}`);
 
-  uploadPlayfield(screen, 2, 29, game);
+  setPlayfieldScreen(screen, 0, 9, game);
 
-  uploadText(screen, 2, 50, "NEXT");
-  for (let i = 0; i < 10; i++) uploadText(screen, 3 + i, 50, "░".repeat(10));
-  uploadTetromino(screen, 4, 51, game.queue[0]);
-  uploadTetromino(screen, 7, 51, game.queue[1]);
-  uploadTetromino(screen, 10, 51, game.queue[2]);
+  setTextScreen(screen, 0, 30, "NEXT");
+  for (let i = 0; i < 10; i++) setTextScreen(screen, 1 + i, 30, "░".repeat(10));
+  setTetrominoScreen(screen, 2, 31, game.queue[0]);
+  setTetrominoScreen(screen, 5, 31, game.queue[1]);
+  setTetrominoScreen(screen, 8, 31, game.queue[2]);
 
-  for (let r = 0; r < screen.length; r++) {
-    for (let c = 0; c < screen[r].length; c++) {
-      const [character, style] = screen[r][c];
-      const cellElement = terminal.children[r].children[c] as HTMLSpanElement;
-      if (style) {
-        if (style.transform) cellElement.style.transform = style.transform;
-        else cellElement.style.removeProperty("transform");
-        if (style.color) cellElement.style.color = style.color;
-        else cellElement.style.removeProperty("color");
-      } else {
-        cellElement.removeAttribute("style");
-      }
-      cellElement.textContent = character;
-    }
-  }
+  return screen;
 }
 
 async function main() {
-  document.body.appendChild(terminal);
+  const nScreenRows = 20;
+  const nScreenCols = 40;
+
+  const terminal = document.body.appendChild(document.createElement("canvas"));
+  terminal.width = nScreenCols * 8;
+  terminal.height = nScreenRows * 16;
+
+  let dpr = devicePixelRatio;
+  const cdpr = Math.ceil(dpr * 0.9561229);
+  terminal.style.width = `${(terminal.width * cdpr) / dpr}px`;
+  terminal.style.height = `${(terminal.height * cdpr) / dpr}px`;
+
+  const context = terminal.getContext("2d")!;
+  context.fillStyle = "#000000";
+  context.fillRect(0, 0, terminal.width, terminal.height);
+
+  const cp437URL = new URL("./ibm-vga-8x16.fnt", import.meta.url);
+  const cp437 = await inflateBitmap(cp437URL, 8);
 
   let game = createGame();
-  requestAnimationFrame(async function callback(time) {
+  let screen: Char[][] | null = null;
+  requestAnimationFrame(function callback(time) {
     if (signal.aborted) return;
-    game.time = time;
-    updateGame(game);
-    renderGame(game);
-    if (!signal.aborted) requestAnimationFrame(callback);
+    requestAnimationFrame(callback);
+    updateGame(Object.assign(game, { time }));
+    if (dpr !== devicePixelRatio) {
+      dpr = devicePixelRatio;
+      const cdpr = Math.ceil(dpr * 0.9561229);
+      terminal.style.width = `${(terminal.width * cdpr) / dpr}px`;
+      terminal.style.height = `${(terminal.height * cdpr) / dpr}px`;
+    }
+    const prevScreen = screen;
+    screen = setGameScreen(game);
+    for (let r = 0; r < screen.length; r++) {
+      for (let c = 0; c < screen[r].length; c++) {
+        const [character, style] = screen[r][c];
+        if (
+          prevScreen?.[r][c][0] === character &&
+          prevScreen?.[r][c][1]?.color === style?.color
+        ) {
+          continue;
+        }
+        context.clearRect(c * 8, r * 16, 8, 16);
+        context.fillStyle = style?.color || "#666666";
+        fillText(context, cp437, character, c * 8, r * 16);
+      }
+    }
   });
 
   const keyPressed: string[] = [];
